@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# macOS
+.DS_Store
+
+# Runtime / AI index files
+vector.index
+metadata.pkl
+
+# User uploaded data
+uploaded_docs/
+uploaded_docs_trash/
+
+# Env files
+.env

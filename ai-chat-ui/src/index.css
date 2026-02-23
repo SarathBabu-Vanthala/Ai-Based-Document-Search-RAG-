@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth font */
+body {
+  @apply bg-slate-950 text-slate-100 font-sans;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(12px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.animate-fadeIn{
+  animation:fadeIn 0.4s ease;
+}
+
+/* ===== DELETE TIMER BAR ===== */
+@keyframes deleteTimer {
+  from { width:100%; }
+  to { width:0%; }
+}
+
+.animate-deleteTimer{
+  animation:deleteTimer 5s linear forwards;
+}
+
+/* ===== AI CURSOR EFFECT ===== */
+.ai-cursor {
+  display: inline-block;
+  margin-left: 3px;
+  width: 8px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity:1; }
+  50% { opacity:0; }
+  100% { opacity:1; }
+}
+
+@keyframes renamePulse {
+0% { box-shadow:0 0 0px rgba(139,92,246,0.4); }
+50% { box-shadow:0 0 6px rgba(139,92,246,0.6); }
+100% { box-shadow:0 0 0px rgba(139,92,246,0.4); }
+}
+
+input:focus {
+animation: renamePulse 1.6s infinite;
+}
+
+/* ===== MAGNETIC TAB GPU SMOOTHING ===== */
+.chat-tab {
+  transition: transform 0.25s ease;
+  will-change: transform;
+}
+/* ===== MAGNETIC TAB + GLOW EFFECT ===== */
+.chat-tab {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, background 0.25s ease;
+  will-change: transform;
+}
+
+.chat-tab::before {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139,92,246,0.35), transparent 70%);
+  left: var(--glow-x, 50%);
+  top: var(--glow-y, 50%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.chat-tab:hover::before {
+  opacity: 1;
+}
+
+/* ===== AI THINKING PULSE ===== */
+
+.ai-pulse {
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: radial-gradient(circle at center,
+      rgba(139,92,246,0.25),
+      transparent 70%);
+  opacity: 0;
+  animation: aiPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes aiPulse {
+  0% { opacity: 0; transform: scale(0.95); }
+  50% { opacity: 0.6; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
