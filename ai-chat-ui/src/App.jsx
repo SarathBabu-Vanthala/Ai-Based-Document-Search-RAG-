@@ -120,7 +120,7 @@ useEffect(()=>{
 },[]);
 
 const loadDocs=()=>{
-fetch("http://127.0.0.1:8000/documents")
+fetch("https://ai-based-document-search-rag.onrender.com/documents")
 .then(r=>r.json())
 .then(data=>{
   setDocuments([...data]);
@@ -301,7 +301,7 @@ setRenamingId(null);
 
 
 const viewDoc=(name)=>{
-window.open(`http://127.0.0.1:8000/files/${name}`,"_blank");
+window.open(`https://ai-based-document-search-rag.onrender.com/files/${name}`,"_blank");
 setActiveMenu(null);
 };
 
@@ -310,7 +310,7 @@ const deleteDoc = async (name) => {
   try {
 
     // ✅ CALL BACKEND SO FILE ACTUALLY MOVES TO TRASH_DIR
-    await fetch(`http://127.0.0.1:8000/documents/${name}`, {
+    await fetch(`https://ai-based-document-search-rag.onrender.com/documents/${name}`, {
       method: "DELETE"
     });
 
@@ -335,7 +335,7 @@ const undoDelete = async () => {
 
   try{
 
-    await fetch(`http://127.0.0.1:8000/documents/undo/${lastDeleted}`,{
+    await fetch(`https://ai-based-document-search-rag.onrender.com/documents/undo/${lastDeleted}`,{
       method:"POST"
     });
 
@@ -415,7 +415,7 @@ history:[...t.history,{text,tabId:t.id,msgIndex}]
 }:t));
 
 try{
-const res=await fetch("http://127.0.0.1:8000/chat",{
+const res=await fetch("https://ai-based-document-search-rag.onrender.com/chat",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body: JSON.stringify({
@@ -666,7 +666,7 @@ f.append("file",file);
 
 setIndexingFiles(p=>[...p,file.name]);
 
-const res=await fetch("http://127.0.0.1:8000/upload",{method:"POST",body:f});
+const res=await fetch("https://ai-based-document-search-rag.onrender.com",{method:"POST",body:f});
 const data=await res.json();
 
 loadDocs();
@@ -1095,7 +1095,7 @@ Delete
 <button
 onClick={async()=>{
 
-  await fetch(`http://127.0.0.1:8000/documents/undo/${doc}`,{
+  await fetch(`https://ai-based-document-search-rag.onrender.com/documents/undo/${doc}`,{
     method:"POST"
   });
 
