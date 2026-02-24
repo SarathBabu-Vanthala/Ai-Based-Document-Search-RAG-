@@ -1,5 +1,11 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 
@@ -370,23 +376,31 @@ FINAL STRUCTURED ANSWER:
 def generate(prompt):
 
     try:
-        res=requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model":"gemma3:1b",
-                "prompt":prompt,
-                "stream":False
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
             },
-            timeout=90
+            json={
+                "model": "llama-3.1-8b-instant",   # fast + free
+                "messages": [
+                    {"role":"user","content":prompt}
+                ],
+                "temperature":0.3
+            },
+            timeout=60
         )
 
-        data=res.json() if res.status_code==200 else {}
-        ans=data.get("response","")
+        if res.status_code != 200:
+            print("GROQ ERROR:", res.text)
+            return ""
 
-        return ans.strip() if ans else ""
+        data = res.json()
+        return data["choices"][0]["message"]["content"].strip()
 
     except Exception as e:
-        print("OLLAMA ERROR:",e)
+        print("GROQ REQUEST ERROR:", e)
         return ""
 
 # ================= STRUCTURED OUTPUT ENGINE =================
