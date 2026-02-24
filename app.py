@@ -26,7 +26,7 @@ import docx
 
 from clean import clean_text
 from chunk import chunk_text
-
+print("GROQ KEY:", GROQ_API_KEY)
 # ================= APP =================
 app = FastAPI(title="KnowledgeAI FINAL WORKING")
 
@@ -447,14 +447,24 @@ New Messages:
 Give short memory summary:
 """
 
-        res=requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model":"gemma3:1b","prompt":prompt,"stream":False},
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.2
+            },
             timeout=40
         )
 
-        data=res.json()
-        return data.get("response",old_summary)
+        data = res.json()
+        return data["choices"][0]["message"]["content"]
 
     except:
         return old_summary
