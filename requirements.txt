@@ -1,6 +1,10 @@
-pdfplumber
-python-docx
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
 sentence-transformers
 faiss-cpu
 numpy
-uvicorn[standard]
+pdfplumber
+python-docx
+PyPDF2
