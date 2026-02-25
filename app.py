@@ -53,6 +53,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+@app.get("/")
+def root():
+    return {
+        "status": "KnowledgeAI backend running",
+        "docs": "/docs",
+        "chat_endpoint": "/chat"
+    }
 
 UPLOAD_DIR="uploaded_docs"
 TRASH_DIR="uploaded_docs_trash"
