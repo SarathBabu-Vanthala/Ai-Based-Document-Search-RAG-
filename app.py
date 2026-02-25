@@ -20,13 +20,15 @@ import pickle
 import numpy as np
 import requests
 
-from sentence_transformers import SentenceTransformer
+import hashlib
+
+DIM = 384   # fixed dimension for FAISS
+
 from PyPDF2 import PdfReader
 import docx
 
 from clean import clean_text
 from chunk import chunk_text
-print("GROQ KEY:", GROQ_API_KEY)
 # ================= APP =================
 app = FastAPI(title="KnowledgeAI FINAL WORKING")
 
@@ -72,12 +74,7 @@ app.mount("/files",StaticFiles(directory=UPLOAD_DIR),name="files")
 
 
 
-# ================= MODEL =================
-model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-DIM=model.get_sentence_embedding_dimension()
 
-from sentence_transformers import CrossEncoder
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 # ================= VECTOR STORE =================
 if os.path.exists(INDEX_PATH):
     index=faiss.read_index(INDEX_PATH)
@@ -99,10 +96,23 @@ class ChatRequest(BaseModel):
     config:dict|None=None   # ⭐ NEW
 
 
-# ================= EMBED =================
-def embed(q):
-    vec = model.encode([q.lower()], normalize_embeddings=True)
-    return np.array(vec).astype("float32")
+# ===== LIGHTWEIGHT CLOUD EMBEDDING (NO MODEL LOAD) =====
+ # keep dimension fixed for FAISS
+
+def embed(text: str):
+    text = text.lower()
+    h = hashlib.sha256(text.encode()).digest()
+
+    # create deterministic pseudo-vector
+    vec = np.frombuffer(h * (DIM // len(h) + 1), dtype=np.uint8)[:DIM]
+    vec = vec.astype("float32")
+
+    # normalize
+    norm = np.linalg.norm(vec)
+    if norm > 0:
+        vec = vec / norm
+
+    return np.array([vec]).astype("float32")
 # ================= QUERY NORMALIZER =================
 def normalize_query(q: str):
 
@@ -222,7 +232,7 @@ def retrieve(vec, selected):
         results.append({
             "text": m["text"],
             "source": m["source"],
-            "score": 0.0,   # placeholder until rerank
+            "score": sim,   # placeholder until rerank
             "vector": m["vector"]
         })
 
@@ -244,18 +254,7 @@ def build_history(history):
         return ""
     
     
-def rerank(query, chunks):
-    if not chunks:
-        return chunks
 
-    pairs = [[query, c["text"]] for c in chunks]
-    scores = reranker.predict(pairs)
-
-    for i, s in enumerate(scores):
-        chunks[i]["score"] = float(s)
-
-    chunks.sort(key=lambda x: x["score"], reverse=True)
-    return chunks
 # ================= ADAPTIVE CONTEXT WINDOW (FIXED VERSION) =================
 def build_adaptive_context(query_vec, chunks, max_chars=3000):
     """
@@ -271,7 +270,7 @@ def build_adaptive_context(query_vec, chunks, max_chars=3000):
 
     # ===== UPDATED: Use stored cross-encoder scores only =====
     for c in chunks:
-        scored.append((c["score"], c))
+        scored.append((1.0, c))  # simple ordering
 
     # sort by similarity (highest first)
     scored.sort(key=lambda x: x[0], reverse=True)
@@ -523,9 +522,7 @@ def chat(req:ChatRequest):
     else:
         chunks = retrieve(vec, req.docs)
 
-    # only rerank on fresh retrieval
-        if not semantic_followup:
-            chunks = rerank(msg_low, chunks)
+
 
     if not chunks:
         print("⚠️ No RAG chunks — using general LLM fallback")
@@ -664,21 +661,18 @@ def process_file_background(name,path,data):
     raw_texts = extract_text(name,path,data)
 
     for text in raw_texts:
-
             cleaned = clean_text(text)
             chunks = chunk_text(cleaned,500,100)
 
-            # ⭐ batch embedding ONCE
-            embeddings = model.encode(chunks)
+            for ch in chunks:
+                emb = embed(ch)[0]
 
-            for ch, emb in zip(chunks, embeddings):
                 with index_lock:
                     metadata.append({
                         "text": ch,
                         "source": name,
                         "vector": emb.tolist()
                     })
-
     # SAFE ATOMIC REBUILD
     rebuild_index_atomic()
 

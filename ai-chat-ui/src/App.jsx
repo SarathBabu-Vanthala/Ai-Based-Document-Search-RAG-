@@ -374,7 +374,7 @@ const streamReply = (fullText) => {
 
         const msgs=[...t.messages];
         msgs[msgs.length-1] = {
-          role:"assistant",
+          ...msgs[msgs.length-1],
           content: fullText.slice(0,index)
         };
 
@@ -666,7 +666,10 @@ f.append("file",file);
 
 setIndexingFiles(p=>[...p,file.name]);
 
-const res=await fetch("https://ai-based-document-search-rag.onrender.com",{method:"POST",body:f});
+const res=await fetch("https://ai-based-document-search-rag.onrender.com/upload",{
+  method:"POST",
+  body:f
+});
 const data=await res.json();
 
 loadDocs();
