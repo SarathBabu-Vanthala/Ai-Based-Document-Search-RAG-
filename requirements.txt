@@ -1,8 +1,9 @@
 fastapi
 uvicorn[standard]
-numpy
 faiss-cpu
+numpy
+pdfplumber
 python-docx
-PyPDF2
 python-dotenv
+PyPDF2
 requests
