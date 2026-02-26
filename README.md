@@ -1,58 +1,103 @@
-AI Document Search & Knowledge Retrieval
+📄 AI Document Search Chatbot
+🚀 What is this?
 
-Intelligent RAG-Powered Chatbot for Document Understanding
-What It Does
-Upload any PDF and chat with it. Ask questions in plain English — get accurate answers with source citations, powered by RAG (Retrieval-Augmented Generation).
+This is an AI-based system where you can:
 
-System Architecture
-User Query
-    │
-    ▼
-[ Embedding Model ]       ← BAAI/bge-small-en-v1.5
-    │
-    ▼
-[ FAISS Vector Search ]   ← Finds relevant document chunks
-    │
-    ▼
-[ LLM API ]               ← Generates grounded answer
-    │
-    ▼
-[ Answer + Citations ]    ← Response with source references
-LayerTechPDF ExtractionpdfplumberEmbeddingsBAAI/bge-small-en-v1.5Vector DBFAISSFrontendReact → VercelBackendFastAPI → Render
+Upload documents (PDFs)
 
-Quick Start
-bash# Clone
-git clone https://github.com/your-username/ai-document-search.git
-cd ai-document-search
+Ask questions like a chat
 
-# Backend
-cd backend
-pip install -r requirements.txt
-cp .env.example .env        # Add your LLM API key
-uvicorn main:app --reload
+Get direct answers with references
 
-# Frontend
-cd frontend
-npm install
-npm run dev                 # http://localhost:3000
+👉 No need to read full documents manually.
 
-Key Features
+❗ Problem
 
-📄 PDF upload & text extraction via pdfplumber
-🔍 Semantic search with FAISS vector database
-💬 Multi-turn chat with conversation memory
-📎 Source citations with every answer
-☁️ Deployed on Vercel + Render
+Reading large documents takes time and effort.
+Finding exact information is difficult.
 
+💡 Solution
 
+This project lets you:
 
-Milestones
-#MilestoneDone1Document Ingestion & FAISS Indexing✅ Jan 82RAG Pipeline + LLM Integration✅ Jan 183Chat UI + Dialogue Management✅ Jan 284Deployment & Final Evaluation✅ Live
+Chat with your documents
 
-Future Plans
+Ask questions in simple language
 
-OCR support for scanned PDFs
-Multi-document comparison
-User authentication & document vaults
-Voice interface
-Google Drive / OneDrive integration
+Get accurate answers instantly
+
+⚙️ How it Works
+
+Upload a document
+
+System reads and understands it
+
+You ask a question
+
+AI finds relevant content
+
+Gives you an answer with sources
+
+👉 Flow:
+Query → Search → AI Answer
+
+🧠 Technologies Used
+
+FAISS (for fast search)
+
+Embedding Model (BAAI/bge-small-en-v1.5)
+
+RAG (Retrieval + AI generation)
+
+pdfplumber (PDF text extraction)
+
+Frontend: Vercel
+
+Backend: Render
+
+✨ Features
+
+💬 Chat with documents
+
+🔍 Smart search (not keyword-based)
+
+📄 Supports PDFs
+
+📌 Answers with references
+
+🔁 Supports follow-up questions
+
+🎯 Use Cases
+
+Students → Study materials
+
+Legal → Case documents
+
+Companies → Internal files
+
+HR → Policies
+
+Healthcare → Reports
+
+⚠️ Limitations
+
+Doesn’t work well with scanned PDFs
+
+May be slower on free hosting
+
+Needs good quality documents
+
+🔮 Future Improvements
+
+OCR for scanned PDFs
+
+Voice chat
+
+Login system
+
+Cloud storage support
+
+🏁 Final Note
+
+This project makes document reading easy, fast, and interactive using AI.
+You can simply ask instead of search manually.
