@@ -1,4 +1,5 @@
-📄 AI Document Search Chatbot
+📄 AI DOCUMENT SEARCH CHATBOT
+----------------------------------------------------------------------------------
 🚀 What is this?
 
 This is an AI-based system where you can:
@@ -11,11 +12,14 @@ Get direct answers with references
 
 👉 No need to read full documents manually.
 
+----------------------------------------------------------------------------------
+
 ❗ Problem
 
 Reading large documents takes time and effort.
 Finding exact information is difficult.
 
+----------------------------------------------------------------------------------
 💡 Solution
 
 This project lets you:
@@ -25,7 +29,7 @@ Chat with your documents
 Ask questions in simple language
 
 Get accurate answers instantly
-
+----------------------------------------------------------------------------------
 ⚙️ How it Works
 
 Upload a document
@@ -40,7 +44,7 @@ Gives you an answer with sources
 
 👉 Flow:
 Query → Search → AI Answer
-
+----------------------------------------------------------------------------------
 🧠 Technologies Used
 
 FAISS (for fast search)
@@ -54,7 +58,7 @@ pdfplumber (PDF text extraction)
 Frontend: Vercel
 
 Backend: Render
-
+----------------------------------------------------------------------------------
 ✨ Features
 
 💬 Chat with documents
@@ -66,7 +70,7 @@ Backend: Render
 📌 Answers with references
 
 🔁 Supports follow-up questions
-
+----------------------------------------------------------------------------------
 🎯 Use Cases
 
 Students → Study materials
@@ -78,7 +82,7 @@ Companies → Internal files
 HR → Policies
 
 Healthcare → Reports
-
+----------------------------------------------------------------------------------
 ⚠️ Limitations
 
 Doesn’t work well with scanned PDFs
@@ -86,7 +90,7 @@ Doesn’t work well with scanned PDFs
 May be slower on free hosting
 
 Needs good quality documents
-
+----------------------------------------------------------------------------------
 🔮 Future Improvements
 
 OCR for scanned PDFs
@@ -96,7 +100,7 @@ Voice chat
 Login system
 
 Cloud storage support
-
+----------------------------------------------------------------------------------
 🏁 Final Note
 
 This project makes document reading easy, fast, and interactive using AI.
