@@ -45,6 +45,7 @@ Key Features
 ☁️ Deployed on Vercel + Render
 
 
+
 Milestones
 #MilestoneDone1Document Ingestion & FAISS Indexing✅ Jan 82RAG Pipeline + LLM Integration✅ Jan 183Chat UI + Dialogue Management✅ Jan 284Deployment & Final Evaluation✅ Live
 
