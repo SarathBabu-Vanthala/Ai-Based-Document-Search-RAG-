@@ -1,5 +1,6 @@
 // ===== FULL FINAL FRONTEND (WORKING) =====
-import Intro from "./components/Intro";
+import WelcomeScreen from "./WelcomeScreen";
+import { createPortal } from "react-dom";
 import { useState, useRef, useEffect } from "react";
 import { Send, Upload, FileText, Plus, Sparkles, Moon, Sun,
   Star, Share2, Settings, Copy, Volume2, Menu, X, Trash2, Eye, Home, User, Github, Linkedin, Mail
@@ -9,6 +10,9 @@ import { Send, Upload, FileText, Plus, Sparkles, Moon, Sun,
 export default function App({ userConfig, goHome })
 
 {
+  const savedConfig = JSON.parse(
+  localStorage.getItem("knowledge_config") || "{}"
+);
 console.log(userConfig?.useCase);
 const [savedChats,setSavedChats]=useState(()=>{
 const saved=localStorage.getItem("knowledgeTabs");
@@ -42,7 +46,9 @@ return JSON.parse(localStorage.getItem("selectedDocs")||"[]");
 const [input,setInput]=useState("");
 const [documents,setDocuments]=useState([]);
 const [darkMode,setDarkMode]=useState(true);
-const [sidebar,setSidebar]=useState(false);
+const [sidebar, setSidebar] = useState(() => {
+  return JSON.parse(localStorage.getItem("sidebar_state")) ?? window.innerWidth > 768;
+});
 const [loading,setLoading]=useState(false);
 const [streaming,setStreaming]=useState(false);
 const [activeMenu,setActiveMenu]=useState(null);
@@ -62,6 +68,7 @@ const [started, setStarted] = useState(() => {
 });
 const [session] = useState(() => crypto.randomUUID());
 const [voices, setVoices] = useState([]);
+const inputRef = useRef(null);
 
 
 const [trashDocs,setTrashDocs]=useState(()=>{
@@ -76,7 +83,9 @@ const tabRefs = useRef({});
 
 useEffect(() => {
   const handleResize = () => {
-    setSidebar(window.innerWidth > 768);
+    if (window.innerWidth > 768) {
+      setSidebar(true);   // always open on desktop
+    }
   };
 
   window.addEventListener("resize", handleResize);
@@ -112,7 +121,9 @@ useEffect(()=>{
 },[savedChats]);
 
 
-
+useEffect(() => {
+  localStorage.setItem("sidebar_state", JSON.stringify(sidebar));
+}, [sidebar]);
 useEffect(()=>{
 localStorage.setItem("knowledgeTabs",JSON.stringify(savedChats));
 },[savedChats]);
@@ -180,6 +191,9 @@ useEffect(()=>{
   }
 },[currentTab?.messages]);
 
+useEffect(()=>{
+  inputRef.current?.focus();
+},[activeTab]); // 👉 use activeTab instead of currentTab
 
 // ===== AUTO HIDE DELETE POPUP AFTER 5s =====
 useEffect(()=>{
@@ -194,8 +208,19 @@ useEffect(()=>{
 
 },[lastDeleted]);
 
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    if (e.target.closest(".chat-menu") || e.target.closest(".chat-menu-btn")) {
+      return;
+    }
+    setChatMenu(null);
+    setActiveMenu(null);
+  };
 
-
+  // ⭐ Use mousedown instead of click — fires BEFORE blur steals focus
+  window.addEventListener("mousedown", handleClickOutside);
+  return () => window.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
 const shareChat=()=>{
 if(!currentTab) return;
@@ -312,9 +337,16 @@ if(!openTabs.includes(id))setOpenTabs(p=>[...p,id]);
 setActiveTab(id);
 };
 
-const deleteChat=(id)=>{
-setSavedChats(p=>p.filter(c=>c.id!==id));
-setOpenTabs(p=>p.filter(t=>t!==id));
+const deleteChat = (id) => {
+
+  const remaining = savedChats.filter(c => c.id !== id);
+
+  setSavedChats(remaining);
+  setOpenTabs(p => p.filter(t => t !== id));
+
+  if (activeTab === id && remaining.length) {
+    setActiveTab(remaining[0].id);
+  }
 };
 
 const saveRename=(id)=>{
@@ -459,9 +491,9 @@ body: JSON.stringify({
   history: currentTab.history,
   docs: selectedDocs,
   config: {
-    ...userConfig,
-    session
-  }
+  ...(userConfig || savedConfig),
+  session
+}
 })
 
 
@@ -603,15 +635,16 @@ const resetMagnet = (id)=>{
 };
 
 const mainBg=darkMode?"bg-slate-950 text-white":"bg-white text-black";
-const sideBg=darkMode?"bg-slate-900/40":"bg-gray-100";
+const sideBg = darkMode ? "bg-slate-900" : "bg-gray-100";
 const aiBubble=darkMode?"bg-slate-800/60 border-slate-700":"bg-gray-200 border-gray-300";
 const favChats=JSON.parse(localStorage.getItem("favChats")||"[]");
 const isFav=favChats.find(c=>c.id===currentTab?.id);
 if (!started) {
   return (
-    <Intro
-      onStart={() => {
+    <WelcomeScreen
+      onGetStarted={(config) => {
         localStorage.setItem("knowledge_started", "true");
+        localStorage.setItem("knowledge_config", JSON.stringify(config));
         setStarted(true);
       }}
     />
@@ -620,15 +653,36 @@ if (!started) {
 return(
 <div className={`flex flex-col md:flex-row h-screen ${mainBg}`}>
 
-<button onClick={()=>setSidebar(!sidebar)}
-className="absolute left-4 top-4 p-2 bg-slate-800/40 rounded-lg z-50">
-<Menu size={16}/>
+{/* MENU BUTTON */}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setSidebar(prev => !prev);
+  }}
+  className="fixed left-4 top-4 p-2 bg-slate-800/40 rounded-lg z-[1000]"
+>
+  <Menu size={18}/>
 </button>
 
-
+{/* OVERLAY */}
+{sidebar && (
+  <div
+    className="fixed inset-0 bg-black/40 z-[900] md:hidden"
+    onClick={() => setSidebar(false)}
+  />
+)}
 <aside className={`
   ${sidebar ? "flex" : "hidden"}
-  md:flex w-72 md:w-80 border-r ${sideBg} flex flex-col absolute md:relative z-40 h-full`}>
+  w-72 md:w-80
+  border-r
+  ${sideBg}
+  flex-col
+  fixed md:relative
+  left-0 top-0
+  z-[950]
+  h-full
+  shadow-xl
+`}>
 <div className="p-6 flex items-center gap-3">
 <Sparkles size={18}/>
 <div>
@@ -642,12 +696,17 @@ className="absolute left-4 top-4 p-2 bg-slate-800/40 rounded-lg z-50">
 </div>
 
 <div className="px-6 mb-3">
+  
 <input
 value={docSearch}
 onChange={(e)=>setDocSearch(e.target.value)}
 placeholder="Search files..."
 className="w-full bg-slate-800/40 rounded-lg px-3 py-2 text-sm outline-none"
 />
+
+<div className="text-[11px] opacity-60 mt-1">
+📂 Supported: PDF • DOCX • TXT
+</div>
 </div>
 
 <div className="px-6 flex-1 overflow-y-auto">
@@ -661,7 +720,12 @@ checked={selectedDocs.includes(doc.name)}
 onChange={()=>setSelectedDocs(p=>p.includes(doc.name)?p.filter(d=>d!==doc.name):[...p,doc.name])}/>
 <FileText size={14}/>
 <div className="flex-1 flex items-center justify-between">
-<span>{doc.name}</span>
+<div className="flex flex-col">
+  <span>{doc.name}</span>
+  <span className="text-[10px] opacity-60">
+    {doc.name.split(".").pop().toUpperCase()}
+  </span>
+</div>
 
 {indexingFiles.includes(doc.name) && (
 <span className="text-xs text-yellow-400 animate-pulse">
@@ -744,7 +808,7 @@ setIndexingFiles(p=>p.filter(n=>n!==file.name));
   🏠 Home
 </button>
 {/* USER CONTACT ICON */}
-<div className="relative flex items-center">
+<div className="relative z-50 flex items-center">
 
   <button
     onClick={() => setShowContact(!showContact)}
@@ -827,7 +891,7 @@ PDF-F
 
 </div>
 {/* line for tab alignment */}
-<div className="flex gap-2 px-4 md:px-6 pt-16 overflow-x-auto no-scrollbar">
+<div className="relative z-[10] flex gap-2 px-4 md:px-6 pt-16 overflow-x-auto overflow-y-visible no-scrollbar">
 
 
 {openTabs.map(id=>{
@@ -835,86 +899,140 @@ PDF-F
   if(!t) return null;
 
   return(
-    <div
-      key={id}
-      className={`
-        relative flex items-center gap-2 px-4 py-2 rounded-full text-sm cursor-pointer
-        ${hydrated && id===activeTab
-        ? "bg-violet-600 text-white"
-        : "bg-slate-700/30"}
-      `}
+  <div
+  key={id}
+  ref={el => tabRefs.current[id] = el}
+  onClick={(e) => {
+    if (e.target.closest(".chat-menu-btn") || e.target.closest(".chat-menu")) return;
+    setActiveTab(id);
+  }}
+  className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm pointer-events-auto
+  ${hydrated && id === activeTab
+    ? "bg-violet-600 text-white"
+    : "bg-slate-700/30"
+  }`}
+>
+  {/* TAB TITLE */}
+  {renamingId === id ? (
+    <input
+      value={renameText}
+      autoFocus
+      onChange={(e) => setRenameText(e.target.value)}
+      onBlur={() => saveRename(id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") saveRename(id);
+        if (e.key === "Escape") setRenamingId(null);
+      }}
+      onClick={(e) => e.stopPropagation()}
+      className="bg-transparent outline-none text-sm px-2 border border-violet-500/40 rounded w-24"
+    />
+  ) : (
+    <span className="cursor-pointer select-none">{t.title}</span>
+  )}
+
+  {/* THREE DOTS BUTTON */}
+  <button
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setChatMenu(prev => prev === id ? null : id);
+    }}
+    className="chat-menu-btn opacity-70 hover:opacity-100 cursor-pointer px-1"
+  >
+    ⋮
+  </button>
+
+  {/* DROPDOWN — uses fixed positioning to escape overflow:hidden parents */}
+  {chatMenu === id && createPortal(
+  <div
+    className="chat-menu"
+    onMouseDown={(e) => e.stopPropagation()}
+    style={{
+      position: "fixed",
+      top: `${(tabRefs.current[id]?.getBoundingClientRect().bottom ?? 0) + 6}px`,
+      left: `${(tabRefs.current[id]?.getBoundingClientRect().right ?? 0) - 140}px`,
+      width: "140px",
+      backgroundColor: "#0f172a",
+      border: "1px solid #475569",
+      borderRadius: "10px",
+      boxShadow: "0 25px 50px rgba(0,0,0,0.9)",
+      zIndex: 2147483647,   // maximum possible z-index
+      overflow: "hidden",
+    }}
+  >
+    {/* RENAME */}
+    <button
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setRenamingId(id);
+        setRenameText(t.title);
+        setChatMenu(null);
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+        textAlign: "left",
+        padding: "10px 14px",
+        fontSize: "13px",
+        background: "none",
+        border: "none",
+        borderBottom: "1px solid #1e293b",
+        color: "white",
+        cursor: "pointer",
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
+      onMouseLeave={e => e.currentTarget.style.background = "none"}
     >
+      ✏️ Rename
+    </button>
 
-      {/* ===== CHAT TITLE OR RENAME INPUT ===== */}
-      {renamingId===id ? (
-        <input
-          value={renameText}
-          autoFocus
-          onChange={(e)=>setRenameText(e.target.value)}
-          onBlur={()=>saveRename(id)}
-          onKeyDown={(e)=>e.key==="Enter"&&saveRename(id)}
-          className="bg-transparent outline-none text-sm px-2 border border-violet-500/40 rounded"
-        />
-      ):(
-        <span onClick={()=>setActiveTab(id)}>
-          {t.title}
-        </span>
-      )}
-
-      {/* ===== THREE DOTS ===== */}
-      <button
-        onClick={(e)=>{
-          e.stopPropagation();
-          setChatMenu(prev=>prev===id?null:id);
-        }}
-        className="opacity-70 hover:opacity-100"
-      >
-        ⋮
-      </button>
-
-      {/* ===== DROPDOWN MENU ===== */}
-      {chatMenu===id && (
-        <div className="absolute top-9 right-0 bg-slate-900 border border-slate-700 rounded-lg text-xs shadow-xl z-50">
-
-          <button
-            onClick={()=>{
-              setRenamingId(id);
-              setRenameText(t.title);
-              setChatMenu(null);
-            }}
-            className="block w-full text-left px-3 py-2 hover:bg-slate-700"
-          >
-            ✏️ Rename
-          </button>
-
-          <button
-            onClick={()=>{
-              deleteChat(id);
-              setChatMenu(null);
-            }}
-            className="block w-full text-left px-3 py-2 text-red-400 hover:bg-slate-700"
-          >
-            🗑 Delete
-          </button>
-
-        </div>
-      )}
-
-    </div>
+    {/* DELETE */}
+    <button
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        deleteChat(id);
+        setChatMenu(null);
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+        textAlign: "left",
+        padding: "10px 14px",
+        fontSize: "13px",
+        background: "none",
+        border: "none",
+        color: "#f87171",
+        cursor: "pointer",
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
+      onMouseLeave={e => e.currentTarget.style.background = "none"}
+    >
+      🗑️ Delete
+    </button>
+  </div>,
+  document.body   // ⭐ renders OUTSIDE the entire app tree — nothing can cover it
+)}
+</div>
   );
 })}
 
 </div>
 
 
-<div className="flex-1 overflow-y-auto px-4 md:px-10 py-6 space-y-6">
+<div className="relative z-10 flex-1 overflow-y-auto px-4 md:px-10 py-6 space-y-6">
 {currentTab?.messages.map((m,i)=>(
 <div key={m.id}
 
 ref={el=>messageRefs.current[`${currentTab.id}-${i}`]=el}
 className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
 <div
-className={`px-4 md:px-5 py-3 rounded-2xl border w-fit max-w-[90%] md:max-w-2xl
+className={`px-4 md:px-5 py-3 rounded-2xl border w-fit max-w-[85%] sm:max-w-[75%] md:max-w-2xl
 ${m.role==="user"
   ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white"
   : `${aiBubble} ${streaming && i===currentTab.messages.length-1 ? "ai-pulse" : ""}`
@@ -989,19 +1107,31 @@ ${m.role==="user"
 </div>
 </div>
 ))}
-{loading && !streaming && <div>Thinking...</div>}
+{loading && !streaming && (
+  <div className="flex items-center gap-2 text-sm opacity-70">
+    <div className="flex gap-1">
+      <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce"></div>
+      <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce delay-100"></div>
+      <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce delay-200"></div>
+    </div>
+    AI thinking...
+  </div>
+)}
 {streaming && <div className="opacity-60 text-sm">AI typing...</div>}
 
 <div ref={messagesEndRef}/>
 </div>
 
 <div className="sticky bottom-0 px-4 md:px-6 py-4 border-t border-slate-800/30">
-<div className="backdrop-blur-xl bg-slate-800/50 p-3 rounded-2xl flex gap-3">
-<input value={input}
+<div className="backdrop-blur-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/40 p-3 rounded-2xl flex gap-3">
+<input
+ref={inputRef}
+value={input}
 onChange={(e)=>setInput(e.target.value)}
 onKeyDown={(e)=>e.key==="Enter"&&sendMessage()}
 className="flex-1 bg-transparent outline-none text-sm"
-placeholder="Ask your knowledge base..."/>
+placeholder="Ask your knowledge base..."
+/>
 <button onClick={sendMessage} className="p-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 text-white">
 <Send size={18}/>
 </button>
