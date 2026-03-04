@@ -1,4 +1,5 @@
 // ===== FULL FINAL FRONTEND (WORKING) =====
+import Intro from "./components/Intro";
 import { useState, useRef, useEffect } from "react";
 import { Send, Upload, FileText, Plus, Sparkles, Moon, Sun,
   Star, Share2, Settings, Copy, Volume2, Menu, X, Trash2, Eye, Home, User, Github, Linkedin, Mail
@@ -8,7 +9,7 @@ import { Send, Upload, FileText, Plus, Sparkles, Moon, Sun,
 export default function App({ userConfig, goHome })
 
 {
-console.log(userConfig.useCase);
+console.log(userConfig?.useCase);
 const [savedChats,setSavedChats]=useState(()=>{
 const saved=localStorage.getItem("knowledgeTabs");
 if(saved) return JSON.parse(saved);
@@ -41,7 +42,7 @@ return JSON.parse(localStorage.getItem("selectedDocs")||"[]");
 const [input,setInput]=useState("");
 const [documents,setDocuments]=useState([]);
 const [darkMode,setDarkMode]=useState(true);
-const [sidebar,setSidebar]=useState(true);
+const [sidebar,setSidebar]=useState(false);
 const [loading,setLoading]=useState(false);
 const [streaming,setStreaming]=useState(false);
 const [activeMenu,setActiveMenu]=useState(null);
@@ -56,6 +57,12 @@ const [renamingId,setRenamingId]=useState(null);
 const [renameText,setRenameText]=useState("");
 const [hydrated,setHydrated] = useState(false);
 const [showContact,setShowContact]=useState(false);
+const [started, setStarted] = useState(() => {
+  return localStorage.getItem("knowledge_started") === "true";
+});
+const [session] = useState(() => crypto.randomUUID());
+const [voices, setVoices] = useState([]);
+
 
 const [trashDocs,setTrashDocs]=useState(()=>{
   return JSON.parse(localStorage.getItem("trashDocs")||"[]");
@@ -66,6 +73,15 @@ const messagesEndRef=useRef(null);
 const messageRefs=useRef({});
 const tabRefs = useRef({});
 
+
+useEffect(() => {
+  const handleResize = () => {
+    setSidebar(window.innerWidth > 768);
+  };
+
+  window.addEventListener("resize", handleResize);
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
 useEffect(()=>{
  if(!hydrated) return;
 
@@ -95,6 +111,8 @@ useEffect(()=>{
   }
 },[savedChats]);
 
+
+
 useEffect(()=>{
 localStorage.setItem("knowledgeTabs",JSON.stringify(savedChats));
 },[savedChats]);
@@ -119,12 +137,33 @@ useEffect(()=>{
   setHydrated(true);
 },[]);
 
-const loadDocs=()=>{
-fetch("https://ai-based-document-search-rag.onrender.com/documents")
-.then(r=>r.json())
-.then(data=>{
-  setDocuments([...data]);
-});
+useEffect(() => {
+  const loadVoices = () => {
+    const v = speechSynthesis.getVoices();
+    if (v.length > 0) {
+      setVoices(v);
+    }
+  };
+
+  loadVoices(); // try immediately
+
+  speechSynthesis.onvoiceschanged = loadVoices;
+
+  return () => {
+    speechSynthesis.onvoiceschanged = null;
+  };
+}, []);
+
+
+
+const loadDocs = async () => {
+  try {
+    const res = await fetch("https://ai-based-document-search-rag.onrender.com/documents");
+    const data = await res.json();
+    setDocuments(data || []);
+  } catch (err) {
+    console.error("Document load failed", err);
+  }
 };
 
 
@@ -256,19 +295,16 @@ const id=Date.now();
 const chat={
 id,
 title:`Chat ${savedChats.length+1}`,
-messages:[{role:"assistant",content:"Hi 👋 Ask me anything from your documents!"}],
+messages:[{
+id: Date.now()+Math.random(),
+role:"assistant",
+content:"Hi 👋 Ask me anything from your documents!"
+}],
 history:[]
 };
 setSavedChats(p=>[...p,chat]);
 setOpenTabs(p=>[...p,id]);
 setActiveTab(id);
-};
-
-const closeChat=(id)=>{
-if(openTabs.length===1)return;
-const n=openTabs.filter(t=>t!==id);
-setOpenTabs(n);
-if(activeTab===id)setActiveTab(n[0]);
 };
 
 const openFromSidebar=(id)=>{
@@ -395,7 +431,7 @@ const sendMessage=async()=>{
 if(!input.trim()||!currentTab)return;
 
 const text=input;
-const msgIndex=currentTab.messages.length;
+const msgIndex = currentTab.messages.length;
 
 setInput("");
 setLoading(true);
@@ -422,7 +458,10 @@ body: JSON.stringify({
   message: text,
   history: currentTab.history,
   docs: selectedDocs,
-  config: userConfig
+  config: {
+    ...userConfig,
+    session
+  }
 })
 
 
@@ -487,14 +526,8 @@ const speak = (text,id)=>{
   // ⭐ CHANGE VOICE HERE
   // Try Indian English first
 const selectedVoice =
-  voices.find(v =>
-    v.name.toLowerCase().includes("female")
-  );
-
-if (!selectedVoice) {
-  console.warn("No female voice found");
-  return;
-}
+  voices.find(v => v.lang.includes("en-IN")) ||
+  voices.find(v => v.lang.includes("en-US"));
 
 utter.voice = selectedVoice;
 
@@ -574,17 +607,28 @@ const sideBg=darkMode?"bg-slate-900/40":"bg-gray-100";
 const aiBubble=darkMode?"bg-slate-800/60 border-slate-700":"bg-gray-200 border-gray-300";
 const favChats=JSON.parse(localStorage.getItem("favChats")||"[]");
 const isFav=favChats.find(c=>c.id===currentTab?.id);
-
+if (!started) {
+  return (
+    <Intro
+      onStart={() => {
+        localStorage.setItem("knowledge_started", "true");
+        setStarted(true);
+      }}
+    />
+  );
+}
 return(
-<div className={`h-screen w-screen flex ${mainBg}`}>
+<div className={`flex flex-col md:flex-row h-screen ${mainBg}`}>
 
 <button onClick={()=>setSidebar(!sidebar)}
 className="absolute left-4 top-4 p-2 bg-slate-800/40 rounded-lg z-50">
 <Menu size={16}/>
 </button>
 
-{sidebar && (
-<aside className={`w-80 border-r ${sideBg} flex flex-col`}>
+
+<aside className={`
+  ${sidebar ? "flex" : "hidden"}
+  md:flex w-72 md:w-80 border-r ${sideBg} flex flex-col absolute md:relative z-40 h-full`}>
 <div className="p-6 flex items-center gap-3">
 <Sparkles size={18}/>
 <div>
@@ -661,6 +705,7 @@ onChange={()=>setSelectedDocs(p=>p.includes(doc.name)?p.filter(d=>d!==doc.name):
 <input hidden type="file"
 onChange={async(e)=>{
 const file=e.target.files[0];
+ if (!file) return;
 const f=new FormData();
 f.append("file",file);
 
@@ -690,7 +735,10 @@ setIndexingFiles(p=>p.filter(n=>n!==file.name));
 <Settings size={16}/> Settings
 </button>
 <button
-  onClick={goHome}
+  onClick={()=>{
+    localStorage.removeItem("knowledge_started");
+    setStarted(false);
+  }}
   className="p-3 bg-slate-800/40 rounded-xl flex justify-center gap-2"
 >
   🏠 Home
@@ -753,9 +801,9 @@ setIndexingFiles(p=>p.filter(n=>n!==file.name));
 
 </div>
 </aside>
-)}
 
-<main className="flex-1 flex flex-col relative">
+
+<main className="flex-1 flex flex-col relative w-full max-w-4xl mx-auto px-2 md:px-0">
 
 <div className="absolute top-4 right-6 flex gap-2 z-50">
 
@@ -779,7 +827,7 @@ PDF-F
 
 </div>
 {/* line for tab alignment */}
-<div className="flex gap-2 px-6 pt-16 relative z-10">
+<div className="flex gap-2 px-4 md:px-6 pt-16 overflow-x-auto no-scrollbar">
 
 
 {openTabs.map(id=>{
@@ -859,14 +907,14 @@ PDF-F
 </div>
 
 
-<div className="flex-1 overflow-y-auto p-10 space-y-6">
+<div className="flex-1 overflow-y-auto px-4 md:px-10 py-6 space-y-6">
 {currentTab?.messages.map((m,i)=>(
 <div key={m.id}
 
 ref={el=>messageRefs.current[`${currentTab.id}-${i}`]=el}
 className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
 <div
-className={`px-5 py-3 rounded-2xl border max-w-2xl
+className={`px-4 md:px-5 py-3 rounded-2xl border w-fit max-w-[90%] md:max-w-2xl
 ${m.role==="user"
   ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white"
   : `${aiBubble} ${streaming && i===currentTab.messages.length-1 ? "ai-pulse" : ""}`
@@ -947,7 +995,7 @@ ${m.role==="user"
 <div ref={messagesEndRef}/>
 </div>
 
-<div className="p-6 border-t border-slate-800/30">
+<div className="sticky bottom-0 px-4 md:px-6 py-4 border-t border-slate-800/30">
 <div className="backdrop-blur-xl bg-slate-800/50 p-3 rounded-2xl flex gap-3">
 <input value={input}
 onChange={(e)=>setInput(e.target.value)}
