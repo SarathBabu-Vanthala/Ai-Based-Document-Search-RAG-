@@ -64,7 +64,7 @@ const [renameText,setRenameText]=useState("");
 const [hydrated,setHydrated] = useState(false);
 const [showContact,setShowContact]=useState(false);
 const [started, setStarted] = useState(() => {
-  return localStorage.getItem("knowledge_started") === "true";
+  return sessionStorage.getItem("knowledge_started") === "true";
 });
 const [session] = useState(() => crypto.randomUUID());
 const [voices, setVoices] = useState([]);
@@ -643,10 +643,10 @@ if (!started) {
   return (
     <WelcomeScreen
       onGetStarted={(config) => {
-        localStorage.setItem("knowledge_started", "true");
-        localStorage.setItem("knowledge_config", JSON.stringify(config));
-        setStarted(true);
-      }}
+  sessionStorage.setItem("knowledge_started", "true");
+  localStorage.setItem("knowledge_config", JSON.stringify(config));
+  setStarted(true);
+}}
     />
   );
 }
@@ -734,17 +734,41 @@ onChange={()=>setSelectedDocs(p=>p.includes(doc.name)?p.filter(d=>d!==doc.name):
 )}
 </div>
 
-<button onClick={()=>setActiveMenu(activeMenu===doc.name?null:doc.name)}>⋮</button>
+<button
+  onMouseDown={(e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setActiveMenu(activeMenu === doc.name ? null : doc.name);
+  }}
+  className="shrink-0 px-1 opacity-60 hover:opacity-100"
+>⋮</button>
 
-{activeMenu===doc.name && (
-<div className="absolute right-2 top-8 bg-black text-white rounded-lg text-xs shadow-lg z-50">
-<button onClick={()=>viewDoc(doc.name)} className="flex gap-2 px-3 py-2 hover:bg-slate-700 w-full">
-<Eye size={14}/> View
-</button>
-<button onClick={()=>deleteDoc(doc.name)} className="flex gap-2 px-3 py-2 text-red-400 hover:bg-slate-700 w-full">
-<Trash2 size={14}/> Delete
-</button>
-</div>
+{activeMenu === doc.name && (
+  <div
+    className="absolute right-2 top-8 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs shadow-xl z-[9999]"
+    onMouseDown={(e) => e.stopPropagation()}
+  >
+    <button
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        viewDoc(doc.name);
+      }}
+      className="flex gap-2 px-3 py-2 hover:bg-slate-700 w-full items-center rounded-t-lg"
+    >
+      <Eye size={13}/> View
+    </button>
+    <button
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        deleteDoc(doc.name);
+      }}
+      className="flex gap-2 px-3 py-2 text-red-400 hover:bg-slate-700 w-full items-center rounded-b-lg"
+    >
+      <Trash2 size={13}/> Delete
+    </button>
+  </div>
 )}
 </div>
 ))}
@@ -800,9 +824,9 @@ setIndexingFiles(p=>p.filter(n=>n!==file.name));
 </button>
 <button
   onClick={()=>{
-    localStorage.removeItem("knowledge_started");
-    setStarted(false);
-  }}
+  sessionStorage.removeItem("knowledge_started");
+  setStarted(false);
+}}
   className="p-3 bg-slate-800/40 rounded-xl flex justify-center gap-2"
 >
   🏠 Home
